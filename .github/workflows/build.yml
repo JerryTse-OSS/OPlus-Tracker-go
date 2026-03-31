@@ -1,0 +1,62 @@
+name: Build Go Tools
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: [ '1.23', '1.24' ]
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Build oplus-ota
+        run: go build -o bin/oplus-ota-${{ matrix.os }} ./cmd/oplus-ota
+
+      - name: Build downgrade_query
+        run: go build -o bin/downgrade_query-${{ matrix.os }} ./cmd/downgrade_query
+
+      - name: Build downgrade_query-v2
+        run: go build -o bin/downgrade_query-v2-${{ matrix.os }} ./cmd/downgrade_query-v2
+
+      - name: Build c16_transer
+        run: go build -o bin/c16_transer-${{ matrix.os }} ./cmd/c16_transer
+
+      - name: Build changelog_query
+        run: go build -o bin/changelog_query-${{ matrix.os }} ./cmd/changelog_query
+
+      - name: Build iot_query
+        run: go build -o bin/iot_query-${{ matrix.os }} ./cmd/iot_query
+
+      - name: Build opex_query
+        run: go build -o bin/opex_query-${{ matrix.os }} ./cmd/opex_query
+
+      - name: Build realme_edl_query
+        run: go build -o bin/realme_edl_query-${{ matrix.os }} ./cmd/realme_edl_query
+
+      - name: Build sota_query
+        run: go build -o bin/sota_query-${{ matrix.os }} ./cmd/sota_query
+
+      - name: Build sota_changelog_query
+        run: go build -o bin/sota_changelog_query-${{ matrix.os }} ./cmd/sota_changelog_query
+
+      - name: Upload binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ matrix.os }}-${{ matrix.go-version }}
+          path: bin/*
