@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 
 	"oplus-tracker/pkg/config"
@@ -12,6 +13,29 @@ import (
 	"github.com/go-resty/resty/v2"
 	"github.com/spf13/pflag"
 )
+
+type Child struct {
+	Title   string        `json:"title"`
+	Content []interface{} `json:"content"`
+}
+
+type UpgInstDetail struct {
+	Children []Child `json:"children"`
+	Link     string  `json:"link"`
+	Content  string  `json:"content"`
+	Title    string  `json:"title"`
+	Type     string  `json:"type"`
+}
+
+type BodyData struct {
+	UpgInstDetail []UpgInstDetail `json:"upgInstDetail"`
+}
+
+type Response struct {
+	ResponseCode int    `json:"responseCode"`
+	ErrMsg       string `json:"errMsg"`
+	Body         string `json:"body"`
+}
 
 func main() {
 	var pre int
@@ -24,8 +48,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	otaVersion := args[0]
+	otaVersion := strings.ToUpper(args[0])
 	region := strings.ToLower(args[1])
+
+	if strings.Count(otaVersion, "_") != 2 {
+		fmt.Printf("Error: OTA_Prefix '%s' must contain exactly two underscores.\n", otaVersion)
+		os.Exit(1)
+	}
 
 	regCfg, ok := config.REGION_CONFIG[region]
 	if !ok {
@@ -33,44 +62,79 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Use sg_host if not cn/eu/in
+	host := regCfg.Host
 	if region != "cn" && region != "cn_cmcc" && region != "eu" && region != "in" {
 		base := config.REGION_CONFIG["sg_host"]
-		base.Language = regCfg.Language
-		base.CarrierID = regCfg.CarrierID
-		regCfg = base
+		host = base.Host
 	}
 
 	pureModel, adjustedOTA := processVersionPrefix(otaVersion, pre)
+	fullVersion := adjustedOTA + "_197001010000"
+
+	innerParams := map[string]interface{}{
+		"mode":           0,
+		"maskOtaVersion": fullVersion,
+		"bigVersion":     0,
+		"h5LinkVersion":  6,
+	}
+	paramsJSON, _ := json.Marshal(innerParams)
 
 	client := resty.New()
-	url := fmt.Sprintf("https://%s/update/log", regCfg.Host)
+	url := fmt.Sprintf("https://%s/descriptionInfo", host)
+
+	fmt.Printf("\nQuerying update log for %s\n\n", fullVersion)
 
 	resp, err := client.R().
-		SetQueryParams(map[string]string{
-			"otaVersion": adjustedOTA,
-			"model":      pureModel,
-			"language":   regCfg.Language,
+		SetHeaders(map[string]string{
+			"language":       regCfg.Language,
+			"nvCarrier":      regCfg.CarrierID,
+			"mode":           "manual",
+			"osVersion":      "unknown",
+			"maskOtaVersion": fullVersion,
+			"otaVersion":     fullVersion,
+			"model":          pureModel,
+			"androidVersion": "unknown",
+			"Content-Type":   "application/json",
+			"User-Agent":     "okhttp/4.12.0",
 		}).
-		Get(url)
+		SetBody(map[string]interface{}{
+			"params": string(paramsJSON),
+		}).
+		Post(url)
 
 	if err != nil {
-		fmt.Printf("Request failed: %v\n", err)
+		fmt.Printf("❌ Network error: %v\n", err)
 		os.Exit(1)
 	}
 
-	if !resp.IsSuccess() || !strings.Contains(resp.Header().Get("Content-Type"), "application/json") {
-		fmt.Printf("Error: Server returned non-JSON response\nStatus Code: %d\nResponse: %s\n", resp.StatusCode(), resp.String())
+	if resp.StatusCode() != 200 {
+		fmt.Printf("❌ HTTP error: %d\n", resp.StatusCode())
 		os.Exit(1)
 	}
 
-	var data map[string]interface{}
-	if err := json.Unmarshal(resp.Body(), &data); err != nil {
-		fmt.Println("Invalid JSON response")
+	var apiResp Response
+	if err := json.Unmarshal(resp.Body(), &apiResp); err != nil {
+		fmt.Println("❌ Response is not valid JSON.")
 		os.Exit(1)
 	}
 
-	formatOutput(data, region)
+	if apiResp.ResponseCode == 500 && apiResp.ErrMsg == "no modify" {
+		fmt.Println("No changelog in Server")
+		os.Exit(0)
+	}
+
+	if apiResp.ResponseCode != 200 {
+		fmt.Printf("❌ API returned error code: %d\n", apiResp.ResponseCode)
+		os.Exit(1)
+	}
+
+	var body BodyData
+	if err := json.Unmarshal([]byte(apiResp.Body), &body); err != nil {
+		fmt.Println("❌ 'body' content is not valid JSON.")
+		os.Exit(1)
+	}
+
+	formatOutput(body, region)
 }
 
 func processVersionPrefix(orig string, pre int) (string, string) {
@@ -95,33 +159,73 @@ func processVersionPrefix(orig string, pre int) (string, string) {
 	return pureModel, adjusted
 }
 
-func formatOutput(data map[string]interface{}, region string) {
-	upgInstDetail, _ := data["upgInstDetail"].([]interface{})
-	if len(upgInstDetail) == 0 {
-		fmt.Println("No update details found.")
-		return
+func extractURLFromLink(linkStr string) string {
+	re := regexp.MustCompile(`href\s*=\s*"([^"]+)"`)
+	match := re.FindStringSubmatch(linkStr)
+	if len(match) > 1 {
+		return match[1]
 	}
+	return strings.TrimSpace(linkStr)
+}
 
+func formatOutput(body BodyData, region string) {
 	chinaRegions := map[string]bool{"cn": true, "cn_cmcc": true}
 	useBullet := chinaRegions[region]
+	firstPrinted := false
 
-	for i, item := range upgInstDetail {
-		detail, _ := item.(map[string]interface{})
-		if children, ok := detail["children"].([]interface{}); ok {
-			if i > 0 {
+	for _, item := range body.UpgInstDetail {
+		if len(item.Children) > 0 {
+			if firstPrinted {
 				fmt.Println()
 			}
-			title, _ := detail["title"].(string)
-			fmt.Printf("%s\n", title)
-			for _, c := range children {
-				child, _ := c.(map[string]interface{})
-				content, _ := child["content"].(string)
-				if useBullet {
-					fmt.Printf("· %s\n", content)
-				} else {
-					fmt.Printf("- %s\n", content)
+			for j, child := range item.Children {
+				if j > 0 {
+					fmt.Println()
+				}
+				if child.Title != "" {
+					fmt.Println(child.Title)
+				}
+				for _, c := range child.Content {
+					var text string
+					switch v := c.(type) {
+					case string:
+						text = v
+					case map[string]interface{}:
+						text, _ = v["data"].(string)
+					}
+					if text != "" {
+						if useBullet {
+							fmt.Printf("· %s\n", text)
+						} else {
+							fmt.Println(text)
+						}
+					}
 				}
 			}
+			firstPrinted = true
+		} else if item.Link != "" {
+			if firstPrinted {
+				fmt.Println()
+			}
+			if item.Content != "" {
+				fmt.Println(item.Content)
+			}
+			url := extractURLFromLink(item.Link)
+			fmt.Println(url)
+			firstPrinted = true
+		} else if item.Type == "updateTips" {
+			if firstPrinted {
+				fmt.Println()
+			}
+			title := item.Title
+			if title == "" {
+				title = "Important Notes"
+			}
+			fmt.Println(title)
+			if item.Content != "" {
+				fmt.Println(item.Content)
+			}
+			firstPrinted = true
 		}
 	}
 }
