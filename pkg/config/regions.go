@@ -26,7 +26,7 @@ var REGION_CONFIG = map[string]RegionConfig{
 	"vn":      {Language: "vi-VN", CarrierID: "00111100"},
 	"sa":      {Language: "sa-SA", CarrierID: "10000011"},
 	"mea":     {Language: "en-MEA", CarrierID: "10100110"},
-	"ph":      {Language: "en-PH", CarrierID: "00111110"},
+	"ph":      {Language: "en-PH", CarrierID: "001111110"},
 	"roe":     {Language: "en-EU", CarrierID: "10001101"},
 	"la":      {Language: "en-LA", CarrierID: "10011010"},
 	"br":      {Language: "en-BR", CarrierID: "10011110"},

@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 
 	"oplus-tracker/pkg/config"
@@ -30,8 +31,8 @@ type SotaConfig struct {
 func BuildHeaders(aesKey []byte, cfg SotaConfig, isUpdate bool) map[string]string {
 	aesKeyB64 := base64.StdEncoding.EncodeToString(aesKey)
 	protectedKey, _ := crypto.RSAEncryptOAEP([]byte(aesKeyB64), config.PUBLIC_KEYS["cn"])
-	
-	timestamp := fmt.Sprintf("%d", time.Now().UnixNano() + 1000000000*60*60*24)
+
+	timestamp := fmt.Sprintf("%d", time.Now().UnixNano()+1000000000*60*60*24)
 	pkMap := map[string]interface{}{
 		"SCENE_1": map[string]interface{}{
 			"protectedKey":       protectedKey,
@@ -40,6 +41,16 @@ func BuildHeaders(aesKey []byte, cfg SotaConfig, isUpdate bool) map[string]strin
 		},
 	}
 	pkJSON, _ := json.Marshal(pkMap)
+
+	brandLower := strings.ToLower(cfg.Brand)
+	brandOrig := cfg.Brand
+	if brandLower == "oneplus" {
+		brandOrig = "OnePlus"
+	} else if brandLower == "oppo" {
+		brandOrig = "OPPO"
+	} else if brandLower == "realme" {
+		brandOrig = "realme"
+	}
 
 	headers := map[string]string{
 		"language":       "zh-CN",
@@ -50,9 +61,9 @@ func BuildHeaders(aesKey []byte, cfg SotaConfig, isUpdate bool) map[string]strin
 		"model":          cfg.Model,
 		"mode":           "taste",
 		"nvCarrier":      "10010111",
-		"brand":          cfg.Brand,
-		"brandSota":      cfg.Brand,
-		"osType":         "domestic_" + cfg.Brand,
+		"brand":          brandOrig,
+		"brandSota":      brandOrig,
+		"osType":         "domestic_" + brandOrig,
 		"version":        "2",
 		"deviceId":       fmt.Sprintf("%064d", 0),
 		"protectedKey":   string(pkJSON),
@@ -72,7 +83,7 @@ func BuildHeaders(aesKey []byte, cfg SotaConfig, isUpdate bool) map[string]strin
 func Query(cfg SotaConfig) (map[string]interface{}, []byte, error) {
 	aesKey := crypto.GenerateRandomBytes(32)
 	iv := crypto.GenerateRandomBytes(16)
-	
+
 	headers := BuildHeaders(aesKey, cfg, false)
 
 	now := time.Now().UnixNano() / 1e6
@@ -122,7 +133,7 @@ func Query(cfg SotaConfig) (map[string]interface{}, []byte, error) {
 
 	var res map[string]interface{}
 	json.Unmarshal(resp.Body(), &res)
-	
+
 	bodyStr, _ := res["body"].(string)
 	var encryptedBody map[string]string
 	json.Unmarshal([]byte(bodyStr), &encryptedBody)
@@ -133,7 +144,7 @@ func Query(cfg SotaConfig) (map[string]interface{}, []byte, error) {
 
 	var decryptedJSON map[string]interface{}
 	json.Unmarshal(decrypted, &decryptedJSON)
-	
+
 	return decryptedJSON, aesKey, nil
 }
 
@@ -152,7 +163,7 @@ func Update(queryResult map[string]interface{}, cfg SotaConfig) (map[string]inte
 		mod, _ := m.(map[string]interface{})
 		name := mod["moduleName"].(string)
 		latestVer, _ := mod["moduleVersion"].(float64)
-		
+
 		currentVer := latestVer - 1
 		if latestVer > 100 {
 			currentVer = latestVer - (latestVer / 10)
@@ -207,7 +218,7 @@ func Update(queryResult map[string]interface{}, cfg SotaConfig) (map[string]inte
 
 	var res map[string]interface{}
 	json.Unmarshal(resp.Body(), &res)
-	
+
 	bodyStr, _ := res["body"].(string)
 	var encryptedBody map[string]string
 	json.Unmarshal([]byte(bodyStr), &encryptedBody)
@@ -218,7 +229,7 @@ func Update(queryResult map[string]interface{}, cfg SotaConfig) (map[string]inte
 
 	var decryptedJSON map[string]interface{}
 	json.Unmarshal(decrypted, &decryptedJSON)
-	
+
 	return decryptedJSON, nil
 }
 
@@ -244,9 +255,10 @@ func FetchDescription(modules []map[string]interface{}, sotaVersion string, cfg 
 	}
 	paramsStr, _ := json.Marshal(innerParams)
 
+	brandLower := strings.ToLower(cfg.Brand)
 	headers := map[string]string{
 		"language":           "zh-CN",
-		"brandSota":          cfg.Brand,
+		"brandSota":          brandLower,
 		"sec-ch-ua-platform": "Android",
 		"colorOSVersion":     cfg.ColorOS,
 		"osType":             "domestic_" + cfg.Brand,

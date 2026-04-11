@@ -25,9 +25,6 @@ func ReplaceGaussURL(url string) string {
 func GetRedirectURL(url string, maxRetries int) string {
 	client := resty.New()
 	client.SetRedirectPolicy(resty.NoRedirectPolicy())
-	client.SetHeader("User-Agent", "Mozilla/5.0 (Linux; Android 13; SM-G998B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Mobile Safari/537.36")
-	client.SetHeader("Accept", "application/json,text/html,*/*")
-	client.SetHeader("Accept-Language", "zh-CN,zh;q=0.9")
 	client.SetHeader("userId", "oplus-ota|00000001")
 
 	for i := 0; i < maxRetries; i++ {
