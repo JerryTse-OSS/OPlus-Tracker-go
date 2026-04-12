@@ -89,7 +89,7 @@ func RunQuery(url, otaVersion, prjNum, snNum, duid string, debug bool) {
 
 		cipherInfo := map[string]interface{}{
 			"downgrade-server": map[string]interface{}{
-				"negotiationVersion": NEGOTIATION_VERSION,
+				"negotiationVersion": int64(NEGOTIATION_VERSION),
 				"protectedKey":       protectedKey,
 				"version":            fmt.Sprintf("%d", time.Now().Unix()),
 			},
