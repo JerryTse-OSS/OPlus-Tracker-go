@@ -140,6 +140,11 @@ func Query(cfg SotaConfig) (map[string]interface{}, []byte, error) {
 
 	cipherBytes, _ := base64.StdEncoding.DecodeString(encryptedBody["cipher"])
 	ivBytes, _ := base64.StdEncoding.DecodeString(encryptedBody["iv"])
+
+	if len(ivBytes) != 16 {
+		return nil, nil, fmt.Errorf("server returned invalid IV length: %d", len(ivBytes))
+	}
+
 	decrypted, _ := crypto.AESCTRDecrypt(cipherBytes, aesKey, ivBytes)
 
 	var decryptedJSON map[string]interface{}
@@ -225,6 +230,11 @@ func Update(queryResult map[string]interface{}, cfg SotaConfig) (map[string]inte
 
 	cipherBytes, _ := base64.StdEncoding.DecodeString(encryptedBody["cipher"])
 	ivBytes, _ := base64.StdEncoding.DecodeString(encryptedBody["iv"])
+
+	if len(ivBytes) != 16 {
+		return nil, fmt.Errorf("server returned invalid IV length: %d", len(ivBytes))
+	}
+
 	decrypted, _ := crypto.AESCTRDecrypt(cipherBytes, aesKey, ivBytes)
 
 	var decryptedJSON map[string]interface{}
