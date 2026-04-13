@@ -32,6 +32,15 @@ var REGION_CONFIG = map[string]RegionConfig{
 	"br":      {Language: "en-BR", CarrierID: "10011110"},
 }
 
+var IOT_OLD_KEYS = []string{"oppo1997", "baed2017", "java7865", "231uiedn", "09e32ji6",
+	"0oiu3jdy", "0pej387l", "2dkliuyt", "20odiuye", "87j3id7w"}
+
+const (
+	IOT_SPECIAL_SERVER_CN = "https://iota.coloros.com/post/Query_Update"
+	GAUSS_AUTO_URL        = "https://gauss-otacostauto-cn.allawnfs.com/"
+	GAUSS_MANUAL_URL      = "https://gauss-componentotacostmanual-cn.allawnfs.com/"
+)
+
 var PUBLIC_KEYS = map[string]string{
 	"cn": `-----BEGIN RSA PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApXYGXQpNL7gmMzzvajHa
