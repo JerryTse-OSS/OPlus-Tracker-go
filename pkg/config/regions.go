@@ -41,6 +41,24 @@ const (
 	GAUSS_MANUAL_URL      = "https://gauss-componentotacostmanual-cn.allawnfs.com/"
 )
 
+var OPEX_CONFIG = map[string]string{
+	"host":               "opex-service-cn.allawntech.com",
+	"endpoint":           "/queryUpdate",
+	"public_key_version": "1631001537253",
+	"language":           "zh-CN",
+	"carrier_id":         "10010111",
+}
+
+var OPEX_PUBLIC_KEY = `-----BEGIN RSA PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAr/B2JwdaZIQqVpx10R4R
+o/ZjCLzssu3vIZCKNwDh4LMBkeHRjcjtaVPoPvvTKY74XlMg7fmRv0iQELnlFNtH
+jgg8YnmhZObUmpVdpHLhthRSBqpRKl2LhMgYtE/SELUKvzelw2byNcRnU9/PvbsA
+Dcgz7IUFAzOvvtxnbaOd9CAthvO+0BTSk3dnBt6CT4nScgr13BAn6RTJI0wV5DZM
+pLNsTEXiTcQT3ZX2LcT6bRN8yUmGuARjLh2VG7H1gSxjUUDsKcFmcJY/8zyB64nq
+vX4Gya86c2bVaEd+CsMsOEYISWdVrG+Rf6y3BaG1DZRQDh0GD1cwtvA+JtvEmqGk
+qwIDAQAB
+-----END RSA PUBLIC KEY-----`
+
 var PUBLIC_KEYS = map[string]string{
 	"cn": `-----BEGIN RSA PUBLIC KEY-----
 MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApXYGXQpNL7gmMzzvajHa
