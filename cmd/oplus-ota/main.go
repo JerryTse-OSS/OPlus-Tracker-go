@@ -62,6 +62,7 @@ type QueryConfig struct {
 	Pre            string
 	CustomLanguage string
 	NVID           string
+	Recruit        int
 }
 
 func main() {
@@ -79,6 +80,7 @@ func main() {
 	pflag.IntVar(&cfg.Anti, "anti", 0, "Anti mode (0, 1)")
 	pflag.StringVar(&cfg.NVID, "nvid", "", "Custom NV Carrier ID (8 digits)")
 	pflag.IntVar(&graynew, "graynew", 0, "Query FWs not in taste mode but in gray server")
+	pflag.IntVar(&cfg.Recruit, "recruit", 0, "Recruit ID for beta ROM")
 
 	pflag.Parse()
 
@@ -365,6 +367,10 @@ func queryUpdate(cfg QueryConfig) QueryResult {
 
 	if cfg.ComponentsInput != "" {
 		requestBody["components"] = parseComponents(cfg.ComponentsInput)
+	}
+
+	if cfg.Recruit == 1 {
+		requestBody["recruitId"] = "whoami"
 	}
 
 	rbJSON, _ := json.Marshal(requestBody)
