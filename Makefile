@@ -2,7 +2,7 @@
 BIN_DIR := bin
 
 # List of commands to build
-COMMANDS := oplus-ota c16_transer changelog_query downgrade_query downgrade_query-v2 iot_query opex_query realme_edl_query sota_query sota_changelog_query
+COMMANDS := oplus-ota c16_transer changelog_query downgrade_query downgrade_query-v2 iot_query opex_query opex_analyzer realme_edl_query sota_query sota_changelog_query
 
 # Default target
 .PHONY: all

@@ -29,6 +29,7 @@ type UpgInstDetail struct {
 
 type BodyData struct {
 	UpgInstDetail []UpgInstDetail `json:"upgInstDetail"`
+	VersionName   string          `json:"versionName"`
 }
 
 type Response struct {
@@ -82,7 +83,7 @@ func main() {
 	client := resty.New()
 	url := fmt.Sprintf("https://%s/descriptionInfo", host)
 
-	fmt.Printf("\nQuerying update log for %s\n\n", fullVersion)
+	fmt.Printf("Querying update log for %s\n\n", fullVersion)
 
 	resp, err := client.R().
 		SetHeaders(map[string]string{
@@ -132,6 +133,10 @@ func main() {
 	if err := json.Unmarshal([]byte(apiResp.Body), &body); err != nil {
 		fmt.Println("❌ 'body' content is not valid JSON.")
 		os.Exit(1)
+	}
+
+	if body.VersionName != "" {
+		fmt.Printf("ColorOS Version: %s\n\n", body.VersionName)
 	}
 
 	formatOutput(body, region)
